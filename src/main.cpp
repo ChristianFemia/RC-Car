@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <ArduinoJson.h>
 #include <WiFi.h>
 #include <SPIFFS.h>
 #include <rccar.h>
@@ -11,13 +10,19 @@
 AsyncWebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(1337);
 char msg_buf[10];
+char* in;
+char* left;
+char* right;
+int leftValue;
+int rightValue;
+String leftValueString;
+String rightValueString;
 
 void onWebSocketEvent(uint8_t client_num,
                       WStype_t type,
                       uint8_t *payload,
                       size_t length)
 {
-  StaticJsonDocument<200> doc;
   // Figure out the type of WebSocket event
   switch (type)
   {
@@ -40,12 +45,17 @@ void onWebSocketEvent(uint8_t client_num,
   case WStype_TEXT:
 
     // Print out raw message
-    Serial.printf("[%u] Received text: %s\n", client_num, payload);
+   //Serial.printf("[%u] Received text: %s\n", client_num, payload);
+      in = (char*) payload;
+      left = strtok(in, ":");
+      right = strtok(NULL, ":");
+      leftValueString = (String)left;
+      leftValue = leftValueString.toInt();
+      rightValueString = (String)right;
+      rightValue = rightValueString.toInt();
+      arcadeDrive(leftValue, rightValue);
+  
 
-    deserializeJson(doc, payload);
-    //Serial.print("X: "); 
-    Serial.println(doc["x"].as<int>());
-    // arcadeDrive(doc["x"], doc["y"], true);
     break;
 
   // For everything else: do nothing
@@ -86,7 +96,52 @@ void onPageNotFound(AsyncWebServerRequest *request)
                  "] HTTP GET request of " + request->url());
   request->send(404, "text/plain", "Not found");
 }
-void arcadeDrive(double xSpeed, double zRotation, boolean squareInputs)
+
+void rightMotor(int motorSpeed)                       
+{
+  if (motorSpeed > 0)                                 
+  {
+    digitalWrite(rightMotorPinOne, HIGH);                         
+    digitalWrite(rightMotorPinTwo, LOW);                          
+  }
+  else if (motorSpeed < 0)                            
+  {
+    digitalWrite(rightMotorPinOne, LOW);                          
+    digitalWrite(rightMotorPinTwo, HIGH);                         
+  }
+  else                                                
+  {
+    digitalWrite(rightMotorPinOne, LOW);                          
+    digitalWrite(rightMotorPinTwo, LOW);                          
+  }
+ ledcWrite(pwmChannelRight, motorSpeed);           
+}
+
+void leftMotor(int motorSpeed)                       
+{
+  if (motorSpeed > 0)                                 
+  {
+  //  Serial.println("Move Foward");
+    digitalWrite(leftMotorPinOne, HIGH);                         
+    digitalWrite(leftMotorPinTwo, LOW);                          
+  }
+  else if (motorSpeed < 0)                            
+  {
+    //Serial.println("Move Backwards");
+    digitalWrite(leftMotorPinOne, LOW);                          
+    digitalWrite(leftMotorPinTwo, HIGH);                         
+  }
+  else                                                
+  {
+    digitalWrite(leftMotorPinOne, LOW);                          
+    digitalWrite(leftMotorPinTwo, LOW);                          
+  }
+
+  ledcWrite(pwmChannel, motorSpeed);                
+}
+
+
+void arcadeDrive(double xSpeed, double zRotation)
 {
 
   //Define two variables for left and right speed
@@ -130,14 +185,44 @@ void arcadeDrive(double xSpeed, double zRotation, boolean squareInputs)
       rightSpeed = xSpeed - zRotation;
     }
   }
+
+  if(leftSpeed > 255){
+    leftSpeed = 255;
+  } else if (leftSpeed < -255 ){
+    leftSpeed = -255;
+  }
+  if(rightSpeed > 255){
+    rightSpeed = 255;
+  } else if (rightSpeed < -255){
+    rightSpeed = -255;
+  }
+  //Serial.println(leftSpeed);
+  leftMotor(leftSpeed);
+  rightMotor(rightSpeed);
 }
 
 void setup()
 {
-  // put your setup code here, to run once:
-
-  // Start Serial port
+ // Start Serial port
   Serial.begin(115200);
+
+  // put your setup code here, to run once:
+Serial.println("PinMode Setup");
+  pinMode(leftMotorPinOne, OUTPUT);
+  pinMode(leftMotorPinTwo, OUTPUT);
+  pinMode(leftMotorEnablePin, OUTPUT);
+  
+  pinMode(rightMotorPinOne, OUTPUT);
+  pinMode(rightMotorPinTwo, OUTPUT);
+  pinMode(rightMotorEnablePin, OUTPUT);
+
+  ledcSetup(pwmChannel, freq, resolution);
+  ledcSetup(pwmChannelRight, freq, resolution);
+
+  ledcAttachPin(leftMotorEnablePin, pwmChannel);
+  ledcAttachPin(rightMotorEnablePin, pwmChannelRight);
+
+ 
 
   // Make sure we can read the file system
   if (!SPIFFS.begin())
@@ -146,6 +231,7 @@ void setup()
     while (1)
       ;
   }
+
 
   // Start access point
   WiFi.softAP(ssid, password);
@@ -180,4 +266,5 @@ void loop()
 {
   yield();
   webSocket.loop();
+
 }

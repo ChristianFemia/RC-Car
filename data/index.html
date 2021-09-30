@@ -104,7 +104,12 @@
         })
 
         setInterval(function () {
-        doSend({"x":joystick.deltaX, "y":joystick.deltaY});
+            var deltaX = joystick.deltaX();
+            var deltaY = joystick.deltaY();
+             doSend(deltaX+":"+deltaY);
+            // doSend({"x":joystick.deltaX(), "y":joystick.deltaY()});
+            //console.log({ "x": joystick.deltaX(), "y": joystick.deltaY() });
+            //console.log(deltaX+":"+deltaY);
             var outputEl = document.getElementById('result');
             outputEl.innerHTML = '<b>Result:</b> '
                 + ' dx:' + joystick.deltaX()
@@ -116,7 +121,7 @@
         }, 1 / 30 * 1000);
 
         // Call the init function as soon as the page loads
-window.addEventListener("load", init, false);
+        window.addEventListener("load", init, false);
     </script>
 </body>
 
