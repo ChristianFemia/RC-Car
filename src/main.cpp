@@ -45,7 +45,6 @@ void onWebSocketEvent(uint8_t client_num,
   case WStype_TEXT:
 
     // Print out raw message
-   //Serial.printf("[%u] Received text: %s\n", client_num, payload);
       in = (char*) payload;
       left = strtok(in, ":");
       right = strtok(NULL, ":");
@@ -101,20 +100,31 @@ void rightMotor(int motorSpeed)
 {
   if (motorSpeed > 0)                                 
   {
-    digitalWrite(rightMotorPinOne, HIGH);                         
-    digitalWrite(rightMotorPinTwo, LOW);                          
+    digitalWrite(rightMotorMainPinOne, HIGH);                         
+    digitalWrite(rightMotorMainPinTwo, LOW);   
+
+    digitalWrite(rightMotorFollowerPinOne, LOW);                         
+    digitalWrite(rightMotorFollowerPinTwo, HIGH);                          
   }
   else if (motorSpeed < 0)                            
   {
-    digitalWrite(rightMotorPinOne, LOW);                          
-    digitalWrite(rightMotorPinTwo, HIGH);                         
+    digitalWrite(rightMotorMainPinOne, LOW);                          
+    digitalWrite(rightMotorMainPinTwo, HIGH);      
+    
+    digitalWrite(rightMotorFollowerPinOne, HIGH);                          
+    digitalWrite(rightMotorFollowerPinTwo, LOW);                        
   }
+
   else                                                
   {
-    digitalWrite(rightMotorPinOne, LOW);                          
-    digitalWrite(rightMotorPinTwo, LOW);                          
+    digitalWrite(rightMotorMainPinOne, LOW);                          
+    digitalWrite(rightMotorMainPinTwo, LOW);       
+    
+    digitalWrite(rightMotorFollowerPinOne, LOW);                          
+    digitalWrite(rightMotorFollowerPinTwo, LOW);                          
   }
- ledcWrite(pwmChannelRight, motorSpeed);           
+ ledcWrite(pwmChannelRight, motorSpeed);
+ ledcWrite(pwmChannelRightFollower, -motorSpeed);           
 }
 
 void leftMotor(int motorSpeed)                       
@@ -122,22 +132,31 @@ void leftMotor(int motorSpeed)
   if (motorSpeed > 0)                                 
   {
   //  Serial.println("Move Foward");
-    digitalWrite(leftMotorPinOne, HIGH);                         
-    digitalWrite(leftMotorPinTwo, LOW);                          
+    digitalWrite(leftMotorMainPinOne, HIGH);    
+    digitalWrite(leftMotorFollowerPinOne, LOW);                     
+    digitalWrite(leftMotorMainPinTwo, LOW);     
+    digitalWrite(leftMotorFollowerPinTwo, HIGH);                            
   }
   else if (motorSpeed < 0)                            
   {
     //Serial.println("Move Backwards");
-    digitalWrite(leftMotorPinOne, LOW);                          
-    digitalWrite(leftMotorPinTwo, HIGH);                         
+    digitalWrite(leftMotorMainPinOne, LOW);                          
+    digitalWrite(leftMotorMainPinTwo, HIGH);
+
+    digitalWrite(leftMotorFollowerPinOne, HIGH);                          
+    digitalWrite(leftMotorFollowerPinTwo, LOW);    
   }
   else                                                
   {
-    digitalWrite(leftMotorPinOne, LOW);                          
-    digitalWrite(leftMotorPinTwo, LOW);                          
+    digitalWrite(leftMotorMainPinOne, LOW);                          
+    digitalWrite(leftMotorMainPinTwo, LOW);    
+
+    digitalWrite(leftMotorFollowerPinOne, LOW);                          
+    digitalWrite(leftMotorFollowerPinTwo, LOW);                          
   }
 
-  ledcWrite(pwmChannel, motorSpeed);                
+  ledcWrite(pwmChannelLeft, motorSpeed);
+  ledcWrite(pwmChannelLeftFollower, -motorSpeed);                
 }
 
 
@@ -207,20 +226,33 @@ void setup()
   Serial.begin(115200);
 
   // put your setup code here, to run once:
-Serial.println("PinMode Setup");
-  pinMode(leftMotorPinOne, OUTPUT);
-  pinMode(leftMotorPinTwo, OUTPUT);
-  pinMode(leftMotorEnablePin, OUTPUT);
+  pinMode(leftMotorMainPinOne, OUTPUT);
+  pinMode(leftMotorMainPinTwo, OUTPUT);
+  pinMode(leftMotorMainEnablePin, OUTPUT);
+
+  pinMode(leftMotorFollowerPinOne, OUTPUT);
+  pinMode(leftMotorFollowerPinTwo, OUTPUT);
+  pinMode(leftMotorFollowerEnablePin, OUTPUT);
   
-  pinMode(rightMotorPinOne, OUTPUT);
-  pinMode(rightMotorPinTwo, OUTPUT);
-  pinMode(rightMotorEnablePin, OUTPUT);
+  pinMode(rightMotorMainPinOne, OUTPUT);
+  pinMode(rightMotorMainPinTwo, OUTPUT);
+  pinMode(rightMotorMainEnablePin, OUTPUT);
 
-  ledcSetup(pwmChannel, freq, resolution);
+  pinMode(rightMotorFollowerPinOne, OUTPUT);
+  pinMode(rightMotorFollowerPinTwo, OUTPUT);
+  pinMode(rightMotorFollowerEnablePin, OUTPUT);
+
+  ledcSetup(pwmChannelLeft, freq, resolution);
   ledcSetup(pwmChannelRight, freq, resolution);
+  ledcSetup(pwmChannelLeftFollower, freq, resolution);
+  ledcSetup(pwmChannelRightFollower, freq, resolution);
 
-  ledcAttachPin(leftMotorEnablePin, pwmChannel);
-  ledcAttachPin(rightMotorEnablePin, pwmChannelRight);
+  ledcAttachPin(leftMotorMainEnablePin, pwmChannelLeft);
+  ledcAttachPin(leftMotorFollowerEnablePin, pwmChannelLeftFollower);
+
+  ledcAttachPin(rightMotorMainEnablePin, pwmChannelRight);
+  ledcAttachPin(rightMotorFollowerEnablePin, pwmChannelRightFollower);
+
 
  
 
@@ -266,5 +298,10 @@ void loop()
 {
   yield();
   webSocket.loop();
+
+    digitalWrite(leftMotorMainPinOne, HIGH);    
+    digitalWrite(leftMotorFollowerPinOne, LOW);                     
+    digitalWrite(leftMotorMainPinTwo, LOW);     
+    digitalWrite(leftMotorFollowerPinTwo, HIGH);   
 
 }
